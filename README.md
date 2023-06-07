@@ -1,9 +1,8 @@
 [![main](https://github.com/rcfree/easul/actions/workflows/main.yml/badge.svg)](https://github.com/rcfree/easul/actions/workflows/main.yml)
 
 # EASUL
-<div style="float:right">
-    <img src="docs/images/easul_logo.png">
-</div>
+<img src="docs/images/easul_logo.png" align="right">
+
 
 > **Note**
 > We do not recommend that 
