@@ -1,0 +1,26 @@
+<table>
+    <tr>
+        <th>Field</th><th>Type</th><th>Validation</th><th>Plot</th>
+    </tr>
+
+    {% for name, details in metrics.items() %}
+    <tr>
+        <td>{{ details.type }}</td>
+        <td>{{ details.help }}</td>
+        <td>
+            {% if details.options %}
+                <dl class="row">
+                {% for value, label in details.options.items() %}
+                    <dt>{{ value }}</dt><dd>{{ label }}</dd>
+                {% endfor %}
+                </dl>
+            {% endif %}
+        </td>
+        <td>
+            {% if details.plot %}
+            <img src="data:image/png;base64,{{ details.plot }}" />
+            {% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>

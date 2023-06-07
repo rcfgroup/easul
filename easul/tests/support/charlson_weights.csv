@@ -1,0 +1,18 @@
+Condition,Condition Name,ICD-10 codes,New weight
+1,Acute myocardial infarction ,"I21, I22, I23, I25.2, I25.8 ",5
+2,Cerebral vascular accident ,"G45.0, G45.1, G45.2, G45.4, G45.8, G45.9, G46, I60-I69 ",11
+3,Congestive heart failure ,I50 ,13
+4,Connective tissue disorder ,"M05, M06.0, M06.3, M06.9, M32, M33.2, M34, M35.3 ",4
+5,Dementia ,"F00, F01, F02, F03, F05.1 ",14
+6,Diabetes ,"E10.1, E10.5, E10.6, E10.8, E10.9, E11.1, E11.5, E11.6, E11.8, E11.9, E13.1, E13.6, E13.8, E13.9, E14.1, E14.5, E14.6, E148, E149 ",3
+7,Liver disease ,"K70.2, K70.3, K71.7, K73, K74 ",8
+8,Peptic ulcer ,"K25, K26, K27, K28 ",9
+9,Peripheral vascular disease ,"I71, I73.9, I79.0, R02, Z95.8, Z95.9 ",6
+10,Pulmonary disease ,"J40-J47, J60-J67 ",4
+11,Cancer ,"C00-C76, C80-C97 ",8
+12,Diabetes complications ,"E10.2, E10.3, E10.4, E10.7, E11.2, E11.3, E11.4, E11.7, E13.2, E13.3, E13.4, E13.7, E14.2, E14.3, E14.4, E14.7 ",-1
+13,Paraplegia ,"G04.1, G81, G82.0, G82.1, G82.2 ",1
+14,Renal disease ,"I12, I13, N01, N03, N05.2-N05.6, N07.2-N07.4, N18, N19, N25 ",10
+15,Metastatic cancer ,"C77, C78, C79 ",14
+16,Severe liver disease ,"K72.1, K72.9, K76.6, K76.7 ",18
+17,HIV ,"B20, B21, B22, B23, B24 ",2

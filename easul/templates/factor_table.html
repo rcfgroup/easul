@@ -1,0 +1,11 @@
+<div class="my-4">
+{% if title %}<h4>{{ title }}</h4>{% endif %}
+<table class="table table-dark table-sm">
+<thead class="table-heading"><tr>{% for heading in factors.headings %}<th>{{ heading }}</th>{% endfor %}</tr></thead>
+<tbody>
+    {% for f in factors.data %}
+        <tr style="background-color:{{ f.fill }};color:{{ f.color }}"><td style="text-align:{{ align }}">{{ f.text }}</td><td>{{ f.penalty }}</td><td>{{ f.expression }}</td></tr>
+    {% endfor %}
+</tbody>
+</table>
+</div>

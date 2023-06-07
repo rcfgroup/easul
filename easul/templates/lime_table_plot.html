@@ -1,0 +1,30 @@
+<label>{{ label  }}</label>
+<table class="table table-sm">
+    <tr><th>Reason</th><th>Influence</th></tr>
+
+    {% for reason in reasons %}
+    <tr class="{% if reason.positive %}table-success{% else %}table-danger{% endif %}">
+        <td><i class="{% if reason.positive %}fa-arrow-up{% else %}fa-arrow-down{% endif %} fas"></i>&nbsp;<b>{{ reason.label }}</b> is {{ reason.range }}</td>
+        <td style='width:180px'><div style='width:100%;height:100%'>
+            <div>
+                <div style="width:48%;display:inline-block;float:left;clear:left">
+                    {% if reason.positive %}
+                    <div>&nbsp;</div>
+                    {% else %}
+                    <div style="background-color:{{ red_colour }};width:{{ reason.lime_pc }}%;border:solid 1px black;float:right">&nbsp;</div>
+                    {% endif %}
+                </div>
+                <div style="width:48%;display:inline-block;float:left">
+                    {% if reason.positive %}
+                    <div style="background-color:{{ green_colour }};width:{{ reason.lime_pc }}%;border:solid 1px black;float:left;">&nbsp;</div>
+                    {% else %}
+                    <div>&nbsp;</div>
+                    {% endif %}
+
+                </div>
+            </div>
+
+        </td>
+    </tr>
+    {% endfor %}
+</table>
