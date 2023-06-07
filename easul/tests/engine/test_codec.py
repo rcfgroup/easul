@@ -24,10 +24,10 @@ def test_json_encoder_handles_np_values():
                }                                                                              
             },                                                                                 
             'input_data': {                                                                    
-               'ethnicity': np.float(0.4864864864864865),
+               'ethnicity': float(0.4864864864864865),
                'sex': np.int64(1.0),
-               'dbp': np.float(-0.9899290150319422),
-               'temperature': np.float(-0.8467122208916812),
+               'dbp': float(-0.9899290150319422),
+               'temperature': float(-0.8467122208916812),
                'CREA': 0.051369104646312,                                                     
                'K': -1.892464857943289,                                                       
                'GFR': -0.18124323761023986,                                                   
@@ -47,10 +47,10 @@ def test_json_encoder_handles_np_values():
                   {'probability': 0.54, 'label': 'Death', 'value': 1}                        
                ],                                                                             
                'data': {
-                  'ethnicity': np.float(0.4864864864864865),
+                  'ethnicity': float(0.4864864864864865),
                   'sex': np.int64(1.0),
-                  'dbp': np.float(-0.9899290150319422),
-                  'temperature': np.float(-0.8467122208916812),
+                  'dbp': float(-0.9899290150319422),
+                  'temperature': float(-0.8467122208916812),
                   'CREA': 0.051369104646312,
                   'K': -1.892464857943289,
                   'GFR': -0.18124323761023986,

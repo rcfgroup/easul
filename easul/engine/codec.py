@@ -118,7 +118,7 @@ class MsgPack:
 
         if isinstance(obj, np.integer):
             return int(obj)
-        if isinstance(obj, np.floating):
+        if isinstance(obj, floating):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
@@ -137,7 +137,7 @@ class MsgPack:
 
         if isinstance(obj, np.integer):
             return int(obj)
-        if isinstance(obj, np.floating):
+        if isinstance(obj, floating):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()

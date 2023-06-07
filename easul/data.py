@@ -55,7 +55,7 @@ def to_float(value, details):
     if type(value) is bool:
         value = bool(value)
 
-    return np.float(value)
+    return float(value)
 
 import datetime as dt
 

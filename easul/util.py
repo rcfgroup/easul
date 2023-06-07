@@ -84,7 +84,7 @@ def to_np_values(field_values, fields):
             num_classes = np.max(allowed_values) + 1
             x_values.append(to_categorical(field_values[field_name], num_classes))
         else:
-            x_values.append([np.float64(field_values[field_name])])
+            x_values.append([float64(field_values[field_name])])
 
     return list(chain.from_iterable(x_values))
 
@@ -102,7 +102,7 @@ def cast_values_using_fields(field_values, fields):
     for field_name, field_details in fields.items():
         field_type = field_details['type']
         if field_type == "number":
-            cast_values[field_name] = np.float64(field_values[field_name])
+            cast_values[field_name] = float64(field_values[field_name])
         else:
             cast_values[field_name] = field_values[field_name]
 
