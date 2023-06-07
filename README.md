@@ -1,4 +1,4 @@
-[![main](https://github.com/rcfree/easul/actions/workflows/main.yml/badge.svg)](https://github.com/rcfree/easul/actions/workflows/main.yml)
+[![main](https://github.com/rcfgroup/easul/actions/workflows/main.yml/badge.svg)](https://github.com/rcfgroup/easul/actions/workflows/main.yml)
 
 # EASUL
 <img src="docs/images/easul_logo.png" align="right">
