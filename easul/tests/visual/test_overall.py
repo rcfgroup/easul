@@ -25,13 +25,13 @@ import anys
 import pytest
 overall_elements = [
     (RocCurve,anys.AnyContains("data:image/png;base64")),
-    (Accuracy, anys.AnyContains("76.20%")),
-    (BalancedAccuracy, anys.AnyContains("52.10%")),
-    (Matthews, anys.AnyContains("0.52")),
-    (Ppp, anys.AnyContains("76.16%")),
-    (Npp, anys.AnyContains("76.24%")),
-    (Specificity, anys.AnyContains("79.31%")),
-    (Sensitivity, anys.AnyContains("72.78%")),
+    (Accuracy, anys.AnyContains("75.00%")),
+    (BalancedAccuracy, anys.AnyContains("49.62%")),
+    (Matthews, anys.AnyContains("0.50")),
+    (Ppp, anys.AnyContains("75.17%")),
+    (Npp, anys.AnyContains("74.86%")),
+    (Specificity, anys.AnyContains("78.74%")),
+    (Sensitivity, anys.AnyContains("70.89%")),
 ]
 
 

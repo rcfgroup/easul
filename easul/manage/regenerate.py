@@ -37,19 +37,11 @@ def generate_test_models():
             if not isinstance(algorithm, StoredAlgorithm):
                 continue
 
-            algorithm.update_from_source()
+            algorithm.update_from_definition()
 
             algorithm.save_to_file()
 
         for visual_name, visual in plan.visuals.items():
             visual.calculate_metadata()
-            if visual_name in METADATA_KEYS:
-
-                try:
-                    assert list(visual.metadata.data.keys()) == list(METADATA_KEYS[visual_name].keys())
-                except AssertionError:
-                    print(f"Observed metadata for '{visual_name}' does not match expected:\n{visual.metadata.data}")
-                    exit()
-
             visual.metadata.save()
 

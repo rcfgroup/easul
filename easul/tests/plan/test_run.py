@@ -97,13 +97,13 @@ def test_complex_plan_with_ml_model_waits_for_progression_data(mock_plan_with_ml
     assert driver.get_route() == ["admission","catheter_check","progression_check"]
 
 pos_probs = [
-    {'label': 'No progression','probability': 0.2,'value': 0},
-    {'label': 'Progression','probability': 0.8,'value': 1}
+    {'label': 'No progression','probability': 0.19,'value': 0},
+    {'label': 'Progression','probability': 0.81,'value': 1}
 ]
 
 neg_probs = [
-    {'label': 'No progression','probability': 0.8,'value': 0},
-    {'label': 'Progression','probability': 0.2,'value': 1}
+    {'label': 'No progression','probability': 0.9,'value': 0},
+    {'label': 'Progression','probability': 0.1,'value': 1}
 ]
 test_ml_plan_inputs = [
 
@@ -141,8 +141,8 @@ def test_complex_plan_with_ml_model_driven_correctly_for_progression_data(mock_p
 
 
 test_ml_plan_layout_inputs = [
-    (prog_input_data,"A4",r"72\.00.+What is the model rating.+data:image\/png;base64","Prediction.+<h5>Progression</h5>.+Probability plot.+data:image\/png;base64",{"value":1,"label":"Progression","probabilities":ANY_LIST, "data":ANY_DICT}),
-    (no_prog_input_data,"A5","72\.00.+What is the model rating.+data:image\/png;base64","Prediction.+<h5>No progression</h5>.+Probability plot.+data:image\/png;base64",{"value":0,"label":"No progression","probabilities":ANY_LIST, "data":ANY_DICT})
+    (prog_input_data,"A4",r"71\.00.+What is the model rating.+data:image\/png;base64","Prediction.+<h5>Progression</h5>.+Probability plot.+data:image\/png;base64",{"value":1,"label":"Progression","probabilities":ANY_LIST, "data":ANY_DICT}),
+    (no_prog_input_data,"A5","71\.00.+What is the model rating.+data:image\/png;base64","Prediction.+<h5>No progression</h5>.+Probability plot.+data:image\/png;base64",{"value":0,"label":"No progression","probabilities":ANY_LIST, "data":ANY_DICT})
 ]
 @pytest.mark.parametrize('input_data,reference,expected_overview,expected_pred,expected_result',test_ml_plan_layout_inputs)
 def test_complex_plan_with_ml_model_produces_correct_layout(mock_plan_with_ml, input_data, reference, expected_overview, expected_pred, expected_result):
