@@ -1,7 +1,7 @@
 [![main](https://github.com/rcfgroup/easul/actions/workflows/main.yml/badge.svg)](https://github.com/rcfgroup/easul/actions/workflows/main.yml)
 
 # EASUL
-<img src="docs/images/easul_logo.png" align="right">
+<img src="https://github.com/rcfgroup/easul/raw/main/docs/images/easul_logo.png" align="right">
 
 
 > **Note**
@@ -42,7 +42,7 @@ pip install easul
 You will need to use a Jupyter notebook to run the examples as this will allow visualisations.
 EASUL comes with an example plan and data sets which can be used to explore its features:
 
-```jupyterpython
+```python
 from easul.notebook import *
 from easul.examples import create_example_plan
 
@@ -50,13 +50,13 @@ plan = create_example_plan()
 visualise_plan(plan, use_external=True)
 ```
 
-![Plan flowchart](docs/images/image1.png)
+![Plan flowchart](https://github.com/rcfgroup/easul/raw/main/docs/images/image1.png)
 
 As you can see the plan consists of a number of steps connected together by decisions. The decisions are 
 driven by data sources and algorithms. You can send some data into the plan to get the resulting
 patient journey:
 
-```jupyterpython
+```python
 ...
 visualise_run(plan, {"catheter": {"systolic_bp": 120},
                      "progression": {"age": 59, "sex": 2, "bmi": 32.1, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
@@ -64,7 +64,7 @@ visualise_run(plan, {"catheter": {"systolic_bp": 120},
                      }, use_external=True)
 ```
 
-![Run flowchart](docs/images/image2.png)
+![Run flowchart](https://github.com/rcfgroup/easul/raw/main/docs/images/image2.png)
 
 You will now get a new version of the workflow which shows the patient journey resulting if this data is used. You
 can try using different data to get different patient journeys.
@@ -72,25 +72,25 @@ can try using different data to get different patient journeys.
 You can then look at plans in more detail to determine what steps they have and whether they have specific components 
 or not  (e.g. data sources, visuals, algorithms and decisions):
 
-```jupyterpython
+```python
 describe_plan(plan)
 ```
 
-![Plan steps](docs/images/image3.png)
+![Plan steps](https://github.com/rcfgroup/easul/raw/main/docs/images/image3.png)
 
 And with that knowledge look at an individual step in more detail to look at the components in more detail:
 
 ```jupyterpython
 describe_step("progression_check", plan)
 ```
-![Step components](docs/images/image4.png)
+![Step components](https://github.com/rcfgroup/easul/raw/main/docs/images/image4.png)
 
 You can also simulate a decision obtained from a specific step and get results (and if defined, visualisations) 
 by running data through a specific step.
 
 To get the step results of the simulation:
 
-```jupyterpython
+```python
 simulate_decision("progression_check",plan, {"progression": {"age": 59, "sex": 2, "bmi": 32.1, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
                                      "s4": 4, "s5": 4.9, "s6": 87}}, as_data=True)
 ```
@@ -133,7 +133,7 @@ journey.
 The use of processes simplifies the construction of new timestamp fields combining date and time strings with 
 different formats.
 
-```jupyterpython
+```python
 from easul import *
 from easul.examples import load_data_file
 admissions = DataFrameSource(title="Admissions",
@@ -154,7 +154,7 @@ admissions = DataFrameSource(title="Admissions",
 ```
 
 Now we can setup the other sources required.
-```jupyterpython
+```python
     catheter = DataFrameSource(title="Catheter",
                                data=load_data_file("catheter.csv"),
                                reference_field="admission_id",
@@ -180,7 +180,7 @@ This data format is required in order for the diabetes progression machine learn
 A 'reference_name' corresponding to one of the sources is required to drive the engine. This provides the list of 
 references and the fields containing start and end timestamps.
 
-```jupyterpython
+```python
 from easul.engine.local import LocalEngine
 plan = create_example_plan() #same plan from above
 
