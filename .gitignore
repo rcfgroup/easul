@@ -304,9 +304,4 @@ typings/
 
 *.swp
 *.swo
-notebooks/saved
-notebooks/Model_Deployment.ipynb
-**/metadata
-db/
-easul_server/*.sqlite
-easul_client
+
