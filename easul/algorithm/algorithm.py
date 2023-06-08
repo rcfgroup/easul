@@ -97,9 +97,9 @@ class StoredAlgorithm(Algorithm):
             self.update_from_file(filename)
         else:
             LOG.warning(f"Algorithm file '{filename}' does not exist")
-            self.update_from_source()
+            self.update_from_definition()
 
-    def update_from_source(self):
+    def update_from_definition(self):
         from easul.util import create_package_class
         if callable(self.definition):
             algorithm_def = self.definition

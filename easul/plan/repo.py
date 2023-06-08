@@ -22,7 +22,7 @@ class PlanRepository:
             if not isinstance(algorithm, StoredAlgorithm):
                  continue
 
-            algorithm.update_from_source()
+            algorithm.update_from_definition()
             filename = algorithm.filename
             self._make_path(filename)
             LOG.info(f"Save algorithm to '{filename}")
