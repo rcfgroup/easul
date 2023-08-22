@@ -84,7 +84,7 @@ def visualise_run(plan, input_data, use_external=False, renderer=None):
     Returns:
 
     """
-    from easul.visual.draw.flowchart import MermaidJSExternalFlowChart, MermaidJSFlowChart
+    from easul.visual.draw.flowchart import MermaidWebFlowChart, MermaidCLIFlowChart
 
     driver, plan_copy = _simulate_driver_run(plan, input_data)
 
@@ -96,11 +96,11 @@ def visualise_run(plan, input_data, use_external=False, renderer=None):
 
         renderer = JupyterRenderer()
 
-    fc_cls = MermaidJSExternalFlowChart if use_external is True else MermaidJSFlowChart
+    fc_cls = MermaidWebFlowChart if use_external is True else MermaidCLIFlowChart
 
     v = Visual(
         elements=[
-            JourneyMap(route_only=False, after_route=True, data_sources=True, flow_chart_cls=fc_cls)
+            JourneyMap(route_only=False, after_route=True, data_sources=True, flowchart_cls=fc_cls)
         ])
 
     v.render(driver=driver, steps=plan.steps, renderer=renderer)
