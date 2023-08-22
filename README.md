@@ -116,6 +116,166 @@ simulate_decision("progression_check",plan, {"progression": {"age": 59, "sex": 2
    's6': 87.0}}}
 ```
 
+## Creating a plan with a trained model
+To create a plan from scratch it is simplest to start with an empty plan and add components to it as required.
+Here we create a simple 5-step plan which contains a simple logistic regression algorithm for diabetes, train it and then
+depending on the result moves to a progression or a no progression step and then the end step.
+
+We start by creating a plan and then adding steps in reverse to take into account dependencies.
+
+```python
+from easul import *
+
+plan = Plan(title="My plan")
+plan.add_step("end_step",EndStep(title="End"))
+plan.add_step("diab_prog",PreStep(title="Diabetes progression", next_step=plan.get_step("end_step")))
+plan.add_step("diab_no_prog",PreStep(title="Diabetes no progression", next_step=plan.get_step("end_step")))
+```
+
+Now we create the diabetes classifier algorithm using an example data set which is provided.
+```python
+
+from easul.tests.example import load_diabetes
+from sklearn.linear_model import LogisticRegression
+
+diab_dset = load_diabetes(raw=True, as_classifier=True)
+```
+The dataset is a container for a [pandas](https://pandas.pydata.org/) DataFrame along with a [Cerberus](https://docs.python-cerberus.org/) schema describing the fields:
+```python
+diab_dset.schema
+
+{'age': {'type': 'number', 'help': 'Age in years'}, 
+ 'sex': {'type': 'category', 'options': {1: 'Male', 2: 'Female'}, 'help': 'Gender', 'pre_convert': 'integer'}, 
+ 'bmi': {'type': 'number', 'help': 'Body mass index'}, 'bp': {'type': 'number', 'help': 'Avg blood pressure'}, 
+ 's1': {'type': 'number', 'help': 'tc, total serum cholesterol'}, 
+ 's2': {'type': 'number', 'help': 'ldl, low-density lipoproteins'}, 
+ 's3': {'type': 'number', 'help': 'hdl, high-density lipoproteins'}, 
+ 's4': {'type': 'number', 'help': 'tch, total cholesterol / HDL'}, 
+ 's5': {'type': 'number', 'help': 'ltg, possibly log of serum triglycerides level'}, 
+ 's6': {'type': 'number', 'help': 'glu, blood sugar level'}, 
+ 'y': {'type': 'category', 'help': 'Boolean flag for disease progression', 'pre_convert': 'integer', 'options': {0: 'No progression', 1: 'Progression'}}
+}
+
+```
+Data sets are designed to be used for various purposes including training (e.g. they have some simple built in methods 
+including splitting into training and test sets.) and providing input data (e.g. in which they do not contain 'y' values).
+
+```python
+diab_train, diab_test = diab_dset.train_test_split(train_size=0.75)
+
+diab_alg = ClassifierAlgorithm(title="Model diabetes progression", model=LogisticRegression(max_iter=2000), schema=diab_train.schema)
+diab_alg.fit(diab_train)
+```
+The classifier algorithm here wraps the scikit-learn model and the input data schema.
+
+We can test the algorithm at this point without putting it into the plan yet:
+```python
+diab_alg.single_result(data={"age": 59, "sex": 2, "bmi": 32.1, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
+                                     "s4": 4, "s5": 4.9, "s6": 87}).asdict()
+...
+
+{'value': 1,
+ 'label': 'Progression',
+ 'probabilities': [{'probability': 0.2, 'label': 'No progression', 'value': 0},
+  {'probability': 0.8, 'label': 'Progression', 'value': 1}],
+ 'data': {'age': 59.0,
+  'sex': 2,
+  'bmi': 32.1,
+  'bp': 101.0,
+  's1': 157.0,
+  's2': 93.2,
+  's3': 38.0,
+  's4': 4.0,
+  's5': 4.9,
+  's6': 87.0}}
+```
+Internally in the process above data set is created which uses the algorithm's schema and ensures that input data validates
+correctly.
+
+Now we know it is working, we can add an algorithm step to the plan and create a simple empty source for the data:
+```python
+plan.add_source("diab_step",ConstantSource(title="Diabetes source", data={}))
+
+plan.add_step("diab_step",
+    AlgorithmStep(
+      source=plan.get_source("diab_step"),
+      title="Diabetes progression", 
+      algorithm=diab_alg, 
+      decision = BinaryDecision(true_step = plan.get_step("diab_prog"), false_step=plan.get_step("diab_no_prog")),
+    )
+)
+
+```
+And finally add the start step which triggers the diabetes progression step.
+```python
+plan.add_step("start_step", StartStep(title="Start", next_step=plan.get_step("diab_step")))
+```
+
+Now we can visualise the plan using provided data:
+```python
+from easul.notebook import visualise_run, describe_plan
+describe_plan(plan)
+visualise_run(plan, {"diab_step": {"age": 59, "sex": 2, "bmi": 32.1, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
+                                     "s4": 4, "s5": 4.9, "s6": 87}})
+```
+![Plan overview](https://github.com/rcfgroup/easul/raw/main/docs/images/image5.png)
+
+And run some simulations using input data to see what happens. We get the same result as the initial test for the algorithm.
+
+```python
+simulate_decision("diab_step",plan,{"diab_step": {"age": 59, "sex": 2, "bmi": 32.1, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
+                                     "s4": 4, "s5": 4.9, "s6": 87}}, as_data=True)
+...
+
+{'outcome_step': 'diab_step',
+ 'next_step': 'diab_prog',
+ 'reason': 'positive',
+ 'result': {'value': 1,
+  'label': 'Progression',
+  'probabilities': [{'probability': 0.2,
+    'label': 'No progression',
+    'value': 0},
+   {'probability': 0.8, 'label': 'Progression', 'value': 1}],
+  'data': {'age': 59.0,
+   'sex': 2,
+   'bmi': 32.1,
+   'bp': 101.0,
+   's1': 157.0,
+   's2': 93.2,
+   's3': 38.0,
+   's4': 4.0,
+   's5': 4.9,
+   's6': 87.0}}}
+```
+
+By varying the input data we get a different result:
+```python
+simulate_decision("diab_step",plan,{"diab_step": {"age": 59, "sex": 1, "bmi": 38, "bp": 101, "s1": 157, "s2": 93.2, "s3": 38,
+...
+
+{'outcome_step': 'diab_step',
+ 'next_step': 'diab_prog',
+ 'reason': 'positive',
+ 'result': {'value': 1,
+  'label': 'Progression',
+  'probabilities': [{'probability': 0.04,
+    'label': 'No progression',
+    'value': 0},
+   {'probability': 0.96, 'label': 'Progression', 'value': 1}],
+  'data': {'age': 59.0,
+   'sex': 1,
+   'bmi': 38.0,
+   'bp': 101.0,
+   's1': 157.0,
+   's2': 93.2,
+   's3': 38.0,
+   's4': 4.0,
+   's5': 4.9,
+   's6': 87.0}}}
+```
+This is a simple example of the kind of model-enabled plans which can be created using EASUL.
+
+
 ## Advanced usage
 Processing multiple data points is a little more involved because it requires an engine to be utilised in order to
 drive the journeys. 
