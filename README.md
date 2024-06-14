@@ -30,8 +30,7 @@ in-built data processing
 interpretability measures (e.g. LIME)
 
 ## If I use EASUL in my research project which source should I cite?
-Please cite our pre-print in arxiv which describes the framework and our evaluation of its application to 
-clinical decision support in pneumonia.
+Please cite our article in Frontiers in Digital Health (https://www.frontiersin.org/journals/digital-health/articles/10.3389/fdgth.2023.1237146/full) which describes the framework and our evaluation of its application to clinical decision support in pneumonia.
 
 ## How do I install and use EASUL?
 You should be able to use pip to install EASUL. You may want to do this within a Python virtual environment.
