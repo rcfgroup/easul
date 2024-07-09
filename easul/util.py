@@ -90,10 +90,13 @@ def to_np_values(field_values, fields):
 
 
 def single_field_data_to_np_values(field_values, field_details):
+    LOG.info(f"field_values:{field_values}, field_details:{field_details}")
     allowed_values = np.array(list(field_details.get("options").keys()))
     cls_to_idx = {v:idx for idx, v in enumerate(allowed_values)}
     np_values = [cls_to_idx.get(v) for v in field_values]
     num_classes = len(cls_to_idx)
+    LOG.info(f"np_values:{np_values}")
+    LOG.info(f"num_classes:{num_classes}")
     return to_categorical(np_values, num_classes)
 
 
@@ -340,3 +343,17 @@ def copy_plan_with_new_sources(original_plan, new_sources):
                 step.source = new_sources.get(name)
 
     return plan_copy
+
+def concatenate_arrays(existing, new):
+    if len(new.shape) == 1:
+        new = np.reshape(new, (new.shape[0], 1))
+
+    if existing is None or len(existing)==0:
+        new = np.reshape(new, (new.shape[0], new.shape[1]))
+        return new
+
+
+    try:
+        return np.concatenate((existing, new), axis=1)
+    except np.AxisError:
+        pass

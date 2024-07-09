@@ -3,7 +3,7 @@ from typing import Any
 
 from easul import util
 from easul.algorithm.result import Result
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 import dill
 import hashlib
 from attrs import define, field
@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 @define(kw_only=True)
-class Algorithm:
+class Algorithm(ABC):
     """
     Base class for algorithms
     """

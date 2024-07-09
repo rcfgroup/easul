@@ -3,7 +3,7 @@
 from datetime import datetime, date, time
 import logging
 from typing import Callable, List, Dict, Optional
-
+import pandas as pd
 LOG = logging.getLogger(__name__)
 from attrs import define, field
 
@@ -457,6 +457,9 @@ class ConvertRowsToDictionary:
     fields_to_extract:List[str] = field(factory=list)
 
     def __call__(self, record):
+        if type(record) is pd.DataFrame:
+            record = record.to_dict('records')
+
         if type(record) is not list:
             raise AttributeError("Input data must be a list")
 

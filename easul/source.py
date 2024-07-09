@@ -11,6 +11,7 @@ from functools import partial
 
 from easul.util import get_current_result
 LOG = logging.getLogger(__name__)
+import datetime as dt
 
 @define(kw_only=True)
 class Source:
@@ -33,7 +34,7 @@ class Source:
         """
         data = self._retrieve_final_data(driver, step)
 
-        if not data:
+        if data is None:
             raise StepDataNotAvailable(driver.journey, step.name, retry=False, source_title=self.title)
 
         return data
@@ -170,8 +171,12 @@ class TimebasedDbSource(DbSource):
 
     def _retrieve_final_data(self, driver, step):
         data = super()._retrieve_final_data(driver, step)
+        for item in data:
+            item[self.timestamp_field] = dt.datetime.fromisoformat(item[self.timestamp_field])
 
         res = get_current_result(data, driver.clock.timestamp, self.timestamp_field, self.sort_field, self.reverse_sort)
+        LOG.info(f"res:{res}")
+
         return res
 
 

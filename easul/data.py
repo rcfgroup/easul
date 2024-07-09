@@ -4,7 +4,7 @@ import numpy as np
 
 from easul import error
 
-from easul.util import to_np_values,  single_field_data_to_np_values
+from easul.util import to_np_values,  single_field_data_to_np_values, concatenate_arrays
 import pandas as pd
 from typing import List, Dict
 from cerberus import Validator, TypeDefinition
@@ -229,10 +229,11 @@ class DataInput:
 
         return dt.datetime.strptime(value, config.get("format", "%Y-%m-%dT%H:%M:%S"))
 
-    def __init__(self, data, schema: DataSchema, convert:bool=True, validate:bool=True, encoded_with=None, encoder=None):
+    def __init__(self, data, schema: DataSchema, convert:bool=True, validate:bool=True, encoded_with=None, encoder=None, x_only=False):
         if encoded_with is not None and encoded_with != encoder:
             raise AttributeError("Data input encoded with different encoder than the defined one")
 
+        self.x_only = x_only
         self.schema = schema
         self._convert = convert
         self._validate = validate
@@ -264,14 +265,16 @@ class DataInput:
             raise error.ConversionError(message="Unable to convert data", orig_exception=ex, data=data)
 
         data = self.clean(data)
-
+        LOG.info(f"data:{data}")
         if self._validate:
             self.validate(data)
 
         self._data = self._process_data(data)
 
     def convert_data(self, data):
-        return self._convert_data(data, self.schema)
+        data = self._convert_data(data, self.schema.filter(include_x=True, include_y=not self.x_only))
+        LOG.info(f"convert_data:{data}")
+        return data
 
     def validate(self, data):
         if type(data) is list:
@@ -300,6 +303,10 @@ class DataInput:
                     data[field_name] = pre_convert_fn(data[field_name], field_details)
 
                 field_type = field_details['type']
+                if field_details.get("schema"):
+                    data[field_name] = self._convert_data(data[field_name], field_details["schema"])
+                    continue
+
                 convert_fn = self.convertors.get(field_type)
                 if not convert_fn:
                     raise error.ConversionError(f"Field conversion function not available to convert '{field_name}' to type '{field_type}'", orig_exception=Exception, data=data)
@@ -323,6 +330,9 @@ class DataInput:
             return
 
         for field_name, field_details in fields.items():
+            if field_name in fields.y_names and self.x_only:
+                continue
+
             if not field_name in data:
                 raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
 
@@ -361,27 +371,19 @@ class DataInput:
 
     @property
     def X(self):
+        LOG.info(f"x_names:{self.schema.x_names}")
         return self._extract_data(self.schema.x_names)
 
     def _extract_data(self, field_names):
-        data = self.data[field_names].to_numpy()
+        data = self.data[field_names]
 
-        if self.encoder:
-            idx = 0
-            for field_name in field_names:
+        if not self.encoder:
+            return data.to_numpy()
 
-                if self.encoder.is_field_encoded(field_name):
-                    col = self.encoder.encode_field(field_name, self)
+        idx = 0
+        output = None
+        return self.encoder(field_names, data.to_numpy(), self.schema)
 
-                    if len(col[0])>1:
-                        data = np.concatenate((data[:,range(0,idx)], col, data[:,range(idx+1,data.shape[1])]), axis=1)
-                        idx+=col.shape[1]
-                    else:
-                        data[:idx] = col
-
-                idx+=1
-
-        return data
 
     @property
     def X_data(self):
@@ -463,7 +465,7 @@ class DFDataInput(DataInput):
         "string": lambda x, y: x.astype("string"),
         "boolean": lambda x,y: DFDataInput.to_boolean(x)
     }
-
+    
     @classmethod
     def to_boolean(cls,value):
         if type(value[0]) is str:
@@ -486,6 +488,9 @@ class DFDataInput(DataInput):
             return
 
         for field_name, field_details in fields.items():
+            if field_name in fields.y_names and self.x_only:
+                continue
+
             if not field_name in data:
                 raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
 
@@ -612,7 +617,6 @@ def check_and_encode_data(data, encoder):
         else:
             return data
 
-    encoder.encode_dataset(data)
     return data
 
 def create_input_dataset(data, schema=None, allow_multiple=False, encoder=None):
@@ -631,8 +635,8 @@ def create_input_dataset(data, schema=None, allow_multiple=False, encoder=None):
     """
     from easul import data as dat
 
-    if allow_multiple is False and (isinstance(data, dat.MultiDataInput) or isinstance(data, list)):
-        raise AttributeError("data must represent a single row (e.g. a SingleInputDataSet or a dictionary)")
+    # if allow_multiple is False and (isinstance(data, dat.MultiDataInput) or isinstance(data, list)):
+    #     raise AttributeError("data must represent a single row (e.g. a SingleInputDataSet or a dictionary)")
 
     if issubclass(data.__class__, DataInput):
         return check_and_encode_data(data, encoder)
@@ -641,9 +645,9 @@ def create_input_dataset(data, schema=None, allow_multiple=False, encoder=None):
         raise AttributeError("schema is required if data is not already a DataSet")
 
     elif type(data) is list:
-            return check_and_encode_data(dat.MultiDataInput(data, schema, convert=True), encoder)
+            return check_and_encode_data(dat.MultiDataInput(data, schema, convert=True, encoder=encoder), encoder)
 
-    return check_and_encode_data(dat.SingleDataInput(data, schema, convert=True), encoder)
+    return check_and_encode_data(dat.SingleDataInput(data, schema, convert=True, encoder=encoder), encoder)
 
 class InputEncoder:
     """
@@ -652,17 +656,16 @@ class InputEncoder:
     def __init__(self, encodings):
         self.encodings = encodings
 
-    def encode_input(self, dinput):
-        for field_name,encoder_fn in self.encodings.items():
-            col = encoder_fn(field_name, dinput)
-            dinput.data[field_name] = col
+    # def encode_input(self, dinput):
+    #     for field_name,encoder_fn in self.encodings.items():
+    #         dinput.data[field_name] = self.encode_field(field_name, dinput.data, dinput.schema)
 
-    def encode_field(self, field_name, dinput):
+    def encode_field(self, field_name, data, schema):
         encoder_fn = self.encodings.get(field_name)
         if not encoder_fn:
-            return dinput[field_name]
+            return data[field_name]
 
-        return encoder_fn(field_name, dinput)
+        return encoder_fn(field_name, data[field_name], schema[field_name])
 
     def is_field_encoded(self, field_name):
         return field_name in self.encodings
@@ -683,5 +686,5 @@ def get_field_options_from_schema(field_name, schema):
     return dict(sorted(options.items(), key=operator.itemgetter(0)))
 
 
-def one_hot_encoding(field_name, dinput):
-    return single_field_data_to_np_values(dinput.data[field_name], dinput.schema[field_name])
+def one_hot_encoding(field_name, data, schema):
+    return single_field_data_to_np_values(data, schema)

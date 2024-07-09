@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Any, Optional
 
 import numpy as np
@@ -59,7 +59,7 @@ class PredictiveAlgorithm(Algorithm):
         }
 
     @abstractmethod
-    def _create_result(self, prediction):
+    def single_result(self, data, **kwargs):
         pass
 
 
