@@ -3,61 +3,44 @@ from collections import UserDict
 import numpy as np
 
 from easul import error
-
-from easul.util import to_np_values,  single_field_data_to_np_values, concatenate_arrays
+from easul.data.checker import DataChecker
+from easul.util import to_np_values, single_field_data_to_np_values, concatenate_arrays
 import pandas as pd
 from typing import List, Dict
 from cerberus import Validator, TypeDefinition
 import logging
+
 LOG = logging.getLogger(__name__)
-
 CATEGORY_TYPE = "category"
+DF_TYPE = "df"
 
-def to_boolean(value, details):
-    """
-    Tries to convert a numeric value or string (e.g. 0 or 1) to a boolean
+def validate_data_frame(df, fields):
+    if len(fields) == 0:
+        return
 
-    Args:
-        value: Input value
-        details:
+    for field_name, field_details in fields.items():
+        if field_name in fields.y_names and self.x_only:
+            continue
 
-    Returns:
+        if not field_name in df:
+            raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
 
-    """
-    if value is None:
-        return None
+    v = self.validator_cls(fields, allow_unknown=False)
 
-    if type(value) is str:
-        if value=="":
-            return None
+    for idx, row in df.iterrows():
+        if v.validate(row.to_dict()) is False:
+            raise error.ValidationError(v.errors)
 
-        value = np.int64(value)
-
-    return bool(value)
-
-def to_float(value, details):
-    """
-    Tries to convert a value to a float
-
-    Args:
-        value: Input value
-        details:
-
-    Returns:
-
-    """
-    if value is None:
-        return None
-
-    if value == "":
-        return None
-
-    if type(value) is bool:
-        value = bool(value)
-
-    return float(value)
 
 import datetime as dt
+
+
+class DFType:
+    included_types = ["df"]
+
+    def __eq__(self, other):
+        return isinstance(other, pd.DataFrame)
+
 
 class DataValidator(Validator):
     """
@@ -67,6 +50,7 @@ class DataValidator(Validator):
 
     types_mapping = Validator.types_mapping.copy()
     types_mapping[CATEGORY_TYPE] = TypeDefinition(CATEGORY_TYPE, (object,), ())
+    types_mapping[DF_TYPE] = TypeDefinition(DF_TYPE, (pd.DataFrame,), ())
     types_mapping["time"] = TypeDefinition('time', (dt.time,), ())
 
     def _validate_help(self, constraint, field, value):
@@ -77,7 +61,6 @@ class DataValidator(Validator):
         """{'type': 'dict'}"""
         if value not in constraint:
             self._error(field, f"Value '" + str(value) + "' is not defined in options")
-
 
     def _validate_output(self, constraint, field, value):
         """{'type': 'string'}"""
@@ -91,37 +74,48 @@ class DataValidator(Validator):
         """{'type': 'string'}"""
         pass
 
+    def _validate_type(self, schema, field, value):
+        super()._validate_type(schema, field, value)
+
+        validate_data_frame(value, self.schema[field])
+        # if isinstance(value, Sequence) and not isinstance(value, _str_type):
+        #     self.__validate_schema_sequence(field, schema, value)
+        # elif isinstance(value, Mapping):
+        #     self.__validate_schema_mapping(field, schema, value)
+
+
 class DataSchema(UserDict):
     """
     Schema used by algorithms to define format of input data.
     Field definitions utilise 'cerberus' library to validate input data.
     """
-    def __init__(self, schema:Dict[str,Dict], y_names=None):
+
+    def __init__(self, schema: Dict[str, Dict], y_names=None):
 
         if not y_names:
             y_names = []
 
-        self.y_names:List[str] = y_names
+        self.y_names: List[str] = y_names
 
         if not all([name in schema for name in y_names]):
             raise AttributeError(f"Not all y_names {y_names} are in schema definition {list(schema.keys())}")
-
 
         super().__init__(schema)
 
         self.refresh()
 
     def refresh(self):
-        if self.filter({"type":"category","output":"onehot"},include_x=False,include_y=True):
+        if self.filter({"type": "category", "output": "onehot"}, include_x=False, include_y=True):
             self.single_y = False
         else:
             self.single_y = True if len(self.y_names) == 1 else False
 
-        category_fields = self.filter({"type": "category"}, include_x = True, include_y = True)
+        category_fields = self.filter({"type": "category"}, include_x=True, include_y=True)
 
         for category_field_name, category_details in category_fields.items():
             if not category_details.get("options"):
-                raise error.ValidationError(f"Field '{category_field_name}' with 'category' type must have 'options' provided")
+                raise error.ValidationError(
+                    f"Field '{category_field_name}' with 'category' type must have 'options' provided")
 
     @property
     def x(self):
@@ -139,13 +133,15 @@ class DataSchema(UserDict):
 
     @property
     def help(self):
-        help_lines = [self._help_line(k,v) for k,v in self.data.items()]
-        help_lines.extend(["* = required field","** = target y value"])
+        help_lines = [self._help_line(k, v) for k, v in self.data.items()]
+        help_lines.extend(["* = required field", "** = target y value"])
 
         return help_lines
 
     def _help_line(self, name, info):
-        return f"- {name}: {info.get('help')}" + ("*" if info.get("required") else " ") + "(" + info.get("type","any") + ")" + ("**" if name in self.y_names else "")
+        return f"- {name}: {info.get('help')}" + ("*" if info.get("required") else " ") + "(" + info.get("type",
+                                                                                                         "any") + ")" + (
+            "**" if name in self.y_names else "")
 
     def filter(self, criteria=None, include_x=True, include_y=False):
         filtered = {}
@@ -183,7 +179,7 @@ class DataSchema(UserDict):
         return "X"
 
     def is_categorical(self, name):
-        if self.get(name,{}).get("type") in ["category","list"]:
+        if self.get(name, {}).get("type") in ["category", "list"]:
             return True
 
         return False
@@ -203,38 +199,23 @@ def np_random_splitter(data, train_size, **kwargs):
 
     return train, test
 
+
 class DataInput:
     """
     Data and schema combined including automatic data conversion and access to data in particular forms.
     Support for pandas DataFrames and list of dictionaries (which are internally converted).
     """
     validator_cls = DataValidator
-    convertors = {
-        "number": to_float,
-        "float": to_float,
-        "date": lambda x, y: dt.datetime.strptime(x, y["format"]) if isinstance(x, str) else x,
-        "datetime": lambda x,y: DataInput.to_datetime(x, y) if isinstance(x,str) else x,
-        "time": lambda x, y: DataInput.to_datetime(x, y).time() if isinstance(x, str) else x,
-        "category": lambda x, y: x,
-        "integer": lambda x, y: np.int64(x),
-        "list": lambda x, y: list(x) if x else [],
-        "string": lambda x, y: str(x),
-        "boolean": to_boolean
-    }
+    checker_cls = DataChecker
 
-    @classmethod
-    def to_datetime(cls, value, config):
-        if type(value) is dt.datetime:
-            return value
-
-        return dt.datetime.strptime(value, config.get("format", "%Y-%m-%dT%H:%M:%S"))
-
-    def __init__(self, data, schema: DataSchema, convert:bool=True, validate:bool=True, encoded_with=None, encoder=None, x_only=False):
+    def __init__(self, data, schema: DataSchema, convert: bool = True, validate: bool = True, encoded_with=None,
+                 encoder=None, x_only=False, checker_cls=None):
         if encoded_with is not None and encoded_with != encoder:
             raise AttributeError("Data input encoded with different encoder than the defined one")
-
+        checker_cls = DataInput.checker_cls if not checker else checker
         self.x_only = x_only
         self.schema = schema
+        self.checker = checker_cls(self.schema.filter(include_x=True, include_y=not self.x_only))
         self._convert = convert
         self._validate = validate
         self.encoded_with = encoded_with
@@ -260,62 +241,33 @@ class DataInput:
     def _init_data(self, data):
         try:
             if self._convert:
-                data = self.convert_data(data)
+                data = self.checker.convert_data(data)
         except BaseException as ex:
             raise error.ConversionError(message="Unable to convert data", orig_exception=ex, data=data)
 
         data = self.clean(data)
         LOG.info(f"data:{data}")
         if self._validate:
-            self.validate(data)
+            self.checker.validate(data)
 
         self._data = self._process_data(data)
 
-    def convert_data(self, data):
-        data = self._convert_data(data, self.schema.filter(include_x=True, include_y=not self.x_only))
-        LOG.info(f"convert_data:{data}")
-        return data
+    # def convert_data(self, data):
+    #     data = self.checker._convert_data(data, self.schema.filter(include_x=True, include_y=not self.x_only))
+    #     LOG.info(f"convert_data:{data}")
+    #     return data
 
-    def validate(self, data):
-        if type(data) is list:
-            [self._validate_data(item, self.schema) for item in data]
-        else:
-            self._validate_data(data, self.schema)
+    # def validate(self, data):
+    #     if type(data) is list:
+    #         [self._validate_data(item, self.schema) for item in data]
+    #     else:
+    #         self._validate_data(data, self.schema)
 
     def clean(self, data):
         return data
 
-    def _convert_data(self, data, fields):
-        if type(data) is list:
-            return [self._convert_data(item, fields) for item in data]
-
-        for field_name, field_details in fields.items():
-            try:
-                if field_name not in data:
-                    if "required" in field_details:
-                        raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
-                    else:
-                        continue
-
-                prev_convert = field_details.get("pre_convert")
-                if prev_convert:
-                    pre_convert_fn = self.convertors.get(prev_convert)
-                    data[field_name] = pre_convert_fn(data[field_name], field_details)
-
-                field_type = field_details['type']
-                if field_details.get("schema"):
-                    data[field_name] = self._convert_data(data[field_name], field_details["schema"])
-                    continue
-
-                convert_fn = self.convertors.get(field_type)
-                if not convert_fn:
-                    raise error.ConversionError(f"Field conversion function not available to convert '{field_name}' to type '{field_type}'", orig_exception=Exception, data=data)
-
-                data[field_name] = convert_fn(data[field_name], field_details)
-            except Exception as ex:
-                raise error.ConversionError(f"Unexpected error converting '{field_name}'", orig_exception=ex)
-
-        return data
+    # def _convert_data(self, data, fields, convertors = None):
+    #     return self.checker._convert_data(data)
 
     def _process_data(self, data):
         if type(data) is dict:
@@ -325,26 +277,24 @@ class DataInput:
 
         return data
 
-    def _validate_data(self, data, fields):
-        if len(fields)==0:
-            return
-
-        for field_name, field_details in fields.items():
-            if field_name in fields.y_names and self.x_only:
-                continue
-
-            if not field_name in data:
-                raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
-
-        v = self.validator_cls(fields, allow_unknown=False)
-
-        if type(data) is list:
-            for row in data:
-                if v.validate(row) is False:
-                    raise error.ValidationError(v.errors)
-        else:
-            if v.validate(data) is False:
-                raise error.ValidationError(v.errors)
+    # def _validate_data(self, data, fields):
+    #     if len(fields)==0:
+    #         return
+    #
+    #     for field_name, field_details in fields.items():
+    #         if not field_name in data:
+    #             raise error.ValidationError(f"Field '{field_name}' is not present in the input data")
+    #
+    #     v = self.validator_cls(fields, allow_unknown=False)
+    #
+    #     # if type(data) is list:
+    #     #     for row in data:
+    #     #         if v.validate(row) is False:
+    #     #             raise error.ValidationError(v.errors)
+    #     # else:
+    #     LOG.info(f"data:{data}")
+    #     if v.validate(data) is False:
+    #         raise error.ValidationError(v.errors)
 
     @property
     def Y_array(self):
@@ -384,7 +334,6 @@ class DataInput:
         output = None
         return self.encoder(field_names, data.to_numpy(), self.schema)
 
-
     @property
     def X_data(self):
         """
@@ -393,7 +342,7 @@ class DataInput:
 
         """
 
-        if len(self.schema.x_names)==0:
+        if len(self.schema.x_names) == 0:
             return []
 
         return self.data[self.schema.x_names]
@@ -406,17 +355,17 @@ class DataInput:
 
         """
 
-        if len(self.schema.y_names)==0:
+        if len(self.schema.y_names) == 0:
             return []
 
-        return self.data.loc[:,self.schema.y_names]
+        return self.data.loc[:, self.schema.y_names]
 
     def train_test_split(self, train_size=None, test_size=None, splitter=np_random_splitter, **kwargs):
         if not train_size and not test_size:
             raise AttributeError("train_size or test_size must be provided")
 
         if not train_size:
-            train_size = 1-test_size
+            train_size = 1 - test_size
 
         train, test = splitter(self.data, train_size, **kwargs)
 
@@ -424,9 +373,9 @@ class DataInput:
         if isinstance(self.data, pd.DataFrame):
             data_cls = DFDataInput
 
-        train_ds = data_cls(data=train,schema=self.schema, convert=False, validate=False)
+        train_ds = data_cls(data=train, schema=self.schema, convert=False, validate=False)
 
-        test_ds = data_cls(data=test,schema=self.schema, convert=False, validate=False)
+        test_ds = data_cls(data=test, schema=self.schema, convert=False, validate=False)
 
         return train_ds, test_ds
 
@@ -440,7 +389,7 @@ class DataInput:
     def clean(self, data):
         new_data = []
 
-        for idx,row in enumerate(data):
+        for idx, row in enumerate(data):
             new_row = {}
             for column, value in row.items():
                 if column in self.schema:
@@ -450,24 +399,25 @@ class DataInput:
 
         return new_data
 
+
 class DFDataInput(DataInput):
     """
     Data input underpinned by pandas DataFrame inputs.
     """
     convertors = {
         "number": lambda x, y: x.astype("float"),
-        "float": lambda x,y: DFDataInput.to_float(x),
+        "float": lambda x, y: DFDataInput.to_float(x),
         "date": lambda x, y: pd.to_datetime(x, format=y["format"]),
         "datetime": lambda x, y: pd.to_datetime(x),
         "category": lambda x, y: x.astype("category"),
         "integer": lambda x, y: x.astype("int64"),
         "list": lambda x, y: list(x),
         "string": lambda x, y: x.astype("string"),
-        "boolean": lambda x,y: DFDataInput.to_boolean(x)
+        "boolean": lambda x, y: DFDataInput.to_boolean(x)
     }
-    
+
     @classmethod
-    def to_boolean(cls,value):
+    def to_boolean(cls, value):
         if type(value[0]) is str:
             if value[0] == "":
                 return [None]
@@ -477,14 +427,14 @@ class DFDataInput(DataInput):
         return value.astype("boolean")
 
     @classmethod
-    def to_float(cls,value):
+    def to_float(cls, value):
         if type(value[0]) and value[0] == "" or value[0] is None:
             return pd.Series(np.nan() * len(value))
 
         return value.astype("float")
 
     def _validate_data(self, data, fields):
-        if len(fields)==0:
+        if len(fields) == 0:
             return
 
         for field_name, field_details in fields.items():
@@ -496,7 +446,7 @@ class DFDataInput(DataInput):
 
         v = self.validator_cls(fields, allow_unknown=False)
 
-        for idx,row in data.iterrows():
+        for idx, row in data.iterrows():
             if v.validate(row.to_dict()) is False:
                 raise error.ValidationError(v.errors)
 
@@ -574,6 +524,7 @@ class MultiDataInput(DataInput):
     Data input containing multiple rows (e.g. list or DataFrame) which follow the schema.
     This is used to handle multiple element predictions/interpretations from user supplied values.
     """
+
     def _init_data(self, data):
         if isinstance(data, list):
             data = pd.DataFrame(data=data, index=[0])
@@ -596,6 +547,7 @@ class MultiDataInput(DataInput):
     def Y_data(self):
         raise ValueError("Y data is not available in MultiInputDataSet")
 
+
 def check_and_encode_data(data, encoder):
     """
     Check and encode data if it has not already been encoded. If data has already been encoded but is different
@@ -613,11 +565,12 @@ def check_and_encode_data(data, encoder):
     if data.is_encoded:
         if data.is_matching_encoder(encoder) is False:
             raise SystemError(
-                    f"Data was not encoded in the same way as the supplied encoder (data set encoded_with:{data.encoded_with}, supplied encoder:{encoder})")
+                f"Data was not encoded in the same way as the supplied encoder (data set encoded_with:{data.encoded_with}, supplied encoder:{encoder})")
         else:
             return data
 
     return data
+
 
 def create_input_dataset(data, schema=None, allow_multiple=False, encoder=None):
     """
@@ -645,14 +598,16 @@ def create_input_dataset(data, schema=None, allow_multiple=False, encoder=None):
         raise AttributeError("schema is required if data is not already a DataSet")
 
     elif type(data) is list:
-            return check_and_encode_data(dat.MultiDataInput(data, schema, convert=True, encoder=encoder), encoder)
+        return check_and_encode_data(dat.MultiDataInput(data, schema, convert=True, encoder=encoder), encoder)
 
     return check_and_encode_data(dat.SingleDataInput(data, schema, convert=True, encoder=encoder), encoder)
+
 
 class InputEncoder:
     """
     Base encoder which encodes input data according to supplied encoding functions for each field.
     """
+
     def __init__(self, encodings):
         self.encodings = encodings
 
@@ -669,7 +624,6 @@ class InputEncoder:
 
     def is_field_encoded(self, field_name):
         return field_name in self.encodings
-
 
 
 def get_field_options_from_schema(field_name, schema):

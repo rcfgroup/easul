@@ -86,7 +86,7 @@ class CollatedSource(Source):
                 raise ex
 
             if type(data) is not dict:
-                data = {"data":data}
+                data = {source_name:data}
 
             final_data.update(data)
 
