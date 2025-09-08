@@ -21,6 +21,9 @@ class Decision:
     def possible_links(self):
         return {}
 
+    def set_possible_links(self, link_dict: dict):
+        self.possible_links = link_dict
+
     def describe(self):
         return {
             "type":self.__class__.__name__
@@ -84,9 +87,6 @@ class BinaryDecision(Decision):
     @property
     def possible_links(self):
         return {self.positive_label:self.true_step, self.negative_label:self.false_step}
-    
-    def set_possible_links(self, link_dict: dict):
-        self.possible_links = link_dict
 
 @define(kw_only=True)
 class PassThruDecision(Decision):
