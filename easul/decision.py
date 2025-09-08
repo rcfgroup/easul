@@ -5,6 +5,7 @@ from attrs import define, field
 from easul.algorithm import Result
 from easul.outcome import Outcome, ResultOutcome
 from easul.expression import DecisionCase
+from easul.step import Step
 
 @define(kw_only=True)
 class Decision:
@@ -83,6 +84,9 @@ class BinaryDecision(Decision):
     @property
     def possible_links(self):
         return {self.positive_label:self.true_step, self.negative_label:self.false_step}
+    
+    def set_possible_links(self, link_dict: dict):
+        self.possible_links = link_dict
 
 @define(kw_only=True)
 class PassThruDecision(Decision):
