@@ -12,6 +12,7 @@ class Decision:
     Decides the outcome based on the provided result and the type of decision. The outcome includes the next step,
     the result and other contextual information.
     """
+    _possible_links = field(type=dict, init=False)
     @abstractmethod
     def decide_outcome(self, result, context, data, step):
         pass
@@ -19,9 +20,10 @@ class Decision:
     @property
     def possible_links(self):
         return {}
-
-    def set_possible_links(self, link_dict: dict):
-        self.possible_links = link_dict
+    
+    @possible_links.setter
+    def possible_links(self, link_dict: dict):
+        self._possible_links = link_dict
 
     def describe(self):
         return {
@@ -58,6 +60,9 @@ class BinaryDecision(Decision):
     positive_label = field(default="positive")
     negative_label = field(default="negative")
 
+    def __attrs_post_init__(self):
+        self._possible_links = {self.positive_label:self.true_step, self.negative_label:self.false_step}
+
     def describe(self):
         desc = super().describe()
         desc.update({
@@ -85,7 +90,7 @@ class BinaryDecision(Decision):
 
     @property
     def possible_links(self):
-        return {self.positive_label:self.true_step, self.negative_label:self.false_step}
+        return self._possible_links
 
 @define(kw_only=True)
 class PassThruDecision(Decision):
