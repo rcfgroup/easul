@@ -5,7 +5,6 @@ from attrs import define, field
 from easul.algorithm import Result
 from easul.outcome import Outcome, ResultOutcome
 from easul.expression import DecisionCase
-from easul.step import Step
 
 @define(kw_only=True)
 class Decision:
