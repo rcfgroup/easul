@@ -92,6 +92,10 @@ class BinaryDecision(Decision):
     def possible_links(self):
         return self._possible_links
 
+    @possible_links.setter
+    def possible_links(self, link_dict: dict):
+        self._possible_links = link_dict
+
 @define(kw_only=True)
 class PassThruDecision(Decision):
     """
