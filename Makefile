@@ -1,4 +1,4 @@
-.PHONY: venv
+.PHONY: venv build upload upload_test
 
 venv:
 	python3 -m venv venv
@@ -14,16 +14,16 @@ deploy_docs:
 
 
 build:
-	rm -r dist
-	python setup.py sdist
-	python setup.py bdist_wheel
+	rm -rf dist
+	uv build
 
+# Credentials: TWINE_USERNAME=__token__ TWINE_PASSWORD=pypi-... (or ~/.pypirc)
 upload:
-	twine check dist/*
-	twine upload -r pypi dist/*
+	uv tool run --from twine twine check dist/*
+	uv tool run --from twine twine upload dist/*
 
 upload_test:
-	twine check dist/*
-	twine upload -r testpypi dist/*
+	uv tool run --from twine twine check dist/*
+	uv tool run --from twine twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 
 
