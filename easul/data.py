@@ -657,6 +657,10 @@ class InputEncoder:
             col = encoder_fn(field_name, dinput)
             dinput.data[field_name] = col
 
+    def encode_dataset(self, dinput):
+        self.encode_input(dinput)
+        dinput.encoded_with = self
+
     def encode_field(self, field_name, dinput):
         encoder_fn = self.encodings.get(field_name)
         if not encoder_fn:
