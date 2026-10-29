@@ -56,7 +56,8 @@ def copy_plan_with_constant_data(plan, input_data):
     for name, source_data in input_data.items():
         original_source = plan.sources.get(name)
 
-        new_sources[name] = ConstantSource(title=original_source.title, processes=original_source.processes,
+        new_sources[name] = ConstantSource(title=original_source.title if original_source else name,
+                                         processes=original_source.processes if original_source else None,
                                          data=source_data)
 
     return copy_plan_with_new_sources(plan, new_sources)
@@ -227,8 +228,11 @@ def simulate_decision(step_name, plan, input_data, renderer=None, as_data=False)
         raise ValueError(f"Step '{step_name}' has no outcome")
 
     outcome = step.get("outcome")
-    del outcome["context"]
-    del outcome["input_data"]
+    if not outcome:
+        raise ValueError(f"Step '{step_name}' has no outcome")
+
+    outcome.pop("context", None)
+    outcome.pop("input_data", None)
 
     if as_data is True:
         return outcome
