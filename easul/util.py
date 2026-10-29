@@ -296,6 +296,8 @@ class DeferredItem:
         return iter(self.plan.get_property(self.property))
 
     def __eq__(self, other):
+        if other is self:
+            return True
         return self.plan.get_property(self.property, self.name) == other
 
     def replace_plan(self, new_plan):
