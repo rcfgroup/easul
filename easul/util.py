@@ -144,7 +144,7 @@ def to_serialized(algo, use_pickle=False):
     return fn(algo)
 
 def get_range_from_discrete_name(discrete_name, feature_name):
-    match = re.match(f"(.*){feature_name}\s*([\<\>]*)([\=]*)\s*(-*[\d\.]+)", discrete_name)
+    match = re.match(rf"(.*){feature_name}\s*([\<\>]*)([\=]*)\s*(-*[\d\.]+)", discrete_name)
     if not match:
         raise ValueError(f"No range could be extracted from '{discrete_name}' for feature '{feature_name}'")
 
@@ -168,7 +168,7 @@ def get_range_from_discrete_name(discrete_name, feature_name):
     if lt:
         lhs = None
         if match.group(1):
-            match_lhs = re.match(f"(-*[\d\.]+)\s*([\<]+)([\=]*)\s*", discrete_name)
+            match_lhs = re.match(rf"(-*[\d\.]+)\s*([\<]+)([\=]*)\s*", discrete_name)
             lhs_is_equal = True if match_lhs.group(3) == "=" else False
             lhs = IntervalValue(is_equal=lhs_is_equal, value=float(match_lhs.group(1)))
 
