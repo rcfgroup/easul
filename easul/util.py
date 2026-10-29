@@ -292,9 +292,6 @@ class DeferredItem:
     def __setattr__(self, key, value):
         setattr(self.plan.get_property(self.property, self.name), key, value)
 
-    def __instancecheck__(self, instance):
-        return isinstance(self.plan.get_property(self.property, self.name), instance)
-
     def __iter__(self):
         return iter(self.plan.get_property(self.property))
 
@@ -327,7 +324,7 @@ def copy_plan_with_new_sources(original_plan, new_sources):
         schemas=copy(original_plan.schemas),
         visuals=copy(original_plan.visuals),
         algorithms=copy(original_plan.algorithms),
-        steps=copy(original_plan.steps),
+        steps={name: copy(step) for name, step in original_plan.steps.items()},
         states=copy(original_plan.states),
         config=copy(original_plan.config)
     )
@@ -336,7 +333,7 @@ def copy_plan_with_new_sources(original_plan, new_sources):
         if hasattr(step, "source") and step.source:
             if isinstance(step.source, DeferredItem):
                 step.source.replace_plan(plan_copy)
-            else:
-                step.source = new_sources.get(name)
+            elif name in new_sources:
+                step.source = new_sources[name]
 
     return plan_copy
