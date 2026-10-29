@@ -96,7 +96,7 @@ class ClassifierAlgorithm(PredictiveAlgorithm):
         option_list = get_field_options_from_schema(field_name, self.schema)
 
         if round_dp:
-            prob_rows = np.round_(prob_rows, round_dp)
+            prob_rows = np.round(prob_rows, round_dp)
 
         probs = [Probability(*args) for args in zip(prob_rows[0], option_list.values(), option_list.keys())]
 
