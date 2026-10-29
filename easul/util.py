@@ -9,6 +9,7 @@ from uuid import uuid4
 import dill
 import pickle
 import numpy as np
+import attrs
 
 from easul.outcome import FailedOutcome
 import importlib
@@ -315,9 +316,8 @@ def copy_plan_with_new_sources(original_plan, new_sources):
 
     """
     from copy import copy
-    from easul.plan import Plan
 
-    from easul import DeferredItem
+    from easul.plan import Plan
     from easul.util import DeferredCatalog
 
     plan_copy = Plan(
@@ -326,16 +326,62 @@ def copy_plan_with_new_sources(original_plan, new_sources):
         schemas=copy(original_plan.schemas),
         visuals=copy(original_plan.visuals),
         algorithms=copy(original_plan.algorithms),
-        steps={name: copy(step) for name, step in original_plan.steps.items()},
         states=copy(original_plan.states),
         config=copy(original_plan.config)
     )
 
+    # Steps and their components refer to each other through DeferredItem proxies,
+    # which resolve against the plan they were created with. Rebinding them to the
+    # copy is what keeps a copied run inside the copy; sharing the steps (or
+    # shallow-copying them) leaves the proxies pointing at the original plan, so the
+    # copy stops at its first step once that plan's sources no longer fit.
+    memo = {id(original_plan): plan_copy}
+    plan_copy.steps.update(
+        {name: _copy_rebinding(step, plan_copy, memo) for name, step in original_plan.steps.items()}
+    )
+    plan_copy._check_steps = plan_copy.default_check_steps()
+
     for name, step in plan_copy.steps.items():
-        if hasattr(step, "source") and step.source:
-            if isinstance(step.source, DeferredItem):
-                step.source.replace_plan(plan_copy)
-            elif name in new_sources:
-                step.source = new_sources[name]
+        if hasattr(step, "source") and step.source and name in new_sources:
+            step.source = new_sources[name]
 
     return plan_copy
+
+
+def _copy_rebinding(value, plan, memo):
+    """
+    Copy ``value``, rebinding every DeferredItem proxy it holds to ``plan``.
+
+    Objects are copied only as deep as needed to replace the proxies: shared
+    components (algorithms, states, actions) stay shared, and objects not
+    reachable from a proxy are returned as they are. The memo preserves sharing
+    within one copy, so two steps using the same component still do.
+    """
+    from copy import copy
+
+    existing = memo.get(id(value))
+    if existing is not None:
+        return existing
+
+    if isinstance(value, DeferredItem):
+        copied = DeferredItem(plan=plan, property=value.property, name=value.name)
+    elif isinstance(value, list):
+        copied = []
+        memo[id(value)] = copied
+        copied.extend(_copy_rebinding(item, plan, memo) for item in value)
+    elif isinstance(value, tuple):
+        copied = tuple(_copy_rebinding(item, plan, memo) for item in value)
+    elif isinstance(value, dict):
+        copied = {}
+        memo[id(value)] = copied
+        copied.update({key: _copy_rebinding(item, plan, memo) for key, item in value.items()})
+    elif attrs.has(type(value)):
+        copied = copy(value)
+        memo[id(value)] = copied
+        for attribute in attrs.fields(type(value)):
+            setattr(copied, attribute.name, _copy_rebinding(getattr(value, attribute.name), plan, memo))
+    else:
+        return value
+
+    memo[id(value)] = copied
+    return copied
