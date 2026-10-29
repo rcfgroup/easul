@@ -37,6 +37,9 @@ class PlanRepository:
             visual.metadata.clear()
             visual.metadata.calculate(dset)
             filename = visual.metadata_filename
+            if not filename:
+                continue
+
             self._make_path(filename)
 
             LOG.info(f"Save metadata to '{visual.metadata.filename}")
