@@ -1,11 +1,18 @@
 from PIL import ImageColor
+
+
+def _text_size(draw, text, font):
+    box = draw.multiline_textbbox((0, 0), text, font=font)
+    return box[2] - box[0], box[3] - box[1]
+
+
 def wrap_text_in_space(draw, xy, text, font, **kwargs):
     space_w = xy[1][0] - xy[0][0]
     space_h = xy[1][1] - xy[0][1]
 
     text = _coerce_text_to_fit(draw, space_w, text, font)
 
-    w, h = draw.multiline_textsize(text, font)
+    w, h = _text_size(draw, text, font)
     text_x = xy[0][0] + (space_w / 2) - (w / 2)
     text_y = xy[0][1] + (space_h / 2) - (h / 2)
 
@@ -13,7 +20,7 @@ def wrap_text_in_space(draw, xy, text, font, **kwargs):
 
 
 def _coerce_text_to_fit(draw, max_width, text, font):
-    w, h = draw.multiline_textsize(text, font)
+    w, h = _text_size(draw, text, font)
     if w<max_width:
         return text
 
@@ -21,7 +28,7 @@ def _coerce_text_to_fit(draw, max_width, text, font):
     line = []
     lines = []
     for text_bit in text_bits:
-        w, h = draw.multiline_textsize(" ".join(line+[text_bit]), font)
+        w, h = _text_size(draw, " ".join(line+[text_bit]), font)
         if w>max_width:
             lines.append(line)
             line = [text_bit]

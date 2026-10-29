@@ -109,7 +109,8 @@ class InterpretedScoreImage:
             rng_name = " " + rng_name + " (" + rng_text + ") "
 
             draw.text((x_start,x_end),rng_name)
-            w,h = draw.textsize(rng_name, self.theme.font)
+            box = draw.textbbox((0, 0), rng_name, font=self.theme.font)
+            w, h = box[2] - box[0], box[3] - box[1]
 
             draw.text((x_start, self.theme.single_block_height), rng_name, fill="black", font=self.theme.font, anchor="lm")
             x_start = x_start + w
