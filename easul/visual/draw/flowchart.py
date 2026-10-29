@@ -3,7 +3,10 @@ from typing import List
 from attrs import define, field
 
 from easul.step import Step
+import logging
 import uuid
+
+LOG = logging.getLogger(__name__)
 
 
 @define(kw_only=True)
@@ -109,8 +112,8 @@ class MermaidCLIFlowChart:
         return lines
 
     def _write_file(self, mjs_chart):
+        import subprocess
         import tempfile
-        import os
         mmd = tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False)
         svg = tempfile.NamedTemporaryFile(suffix=".svg", delete=False)
         svg.close()
@@ -118,8 +121,11 @@ class MermaidCLIFlowChart:
         mmd.write(mjs_chart)
         mmd.close()
 
-        cmd = "mmdc -i " + str(mmd.name) + " -o " + str(svg.name)
-        os.system(cmd)
+        cmd = ["mmdc", "-i", str(mmd.name), "-o", str(svg.name)]
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+        except FileNotFoundError:
+            LOG.warning("mmdc (mermaid-cli) not found; plan flowchart not rendered")
         return svg.name
 
     def _read_file(self, filename):

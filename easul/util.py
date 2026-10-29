@@ -144,7 +144,7 @@ def to_serialized(algo, use_pickle=False):
     return fn(algo)
 
 def get_range_from_discrete_name(discrete_name, feature_name):
-    match = re.match(f"(.*){feature_name}\s*([\<\>]*)([\=]*)\s*(-*[\d\.]+)", discrete_name)
+    match = re.match(rf"(.*){feature_name}\s*([\<\>]*)([\=]*)\s*(-*[\d\.]+)", discrete_name)
     if not match:
         raise ValueError(f"No range could be extracted from '{discrete_name}' for feature '{feature_name}'")
 
@@ -168,7 +168,7 @@ def get_range_from_discrete_name(discrete_name, feature_name):
     if lt:
         lhs = None
         if match.group(1):
-            match_lhs = re.match(f"(-*[\d\.]+)\s*([\<]+)([\=]*)\s*", discrete_name)
+            match_lhs = re.match(rf"(-*[\d\.]+)\s*([\<]+)([\=]*)\s*", discrete_name)
             lhs_is_equal = True if match_lhs.group(3) == "=" else False
             lhs = IntervalValue(is_equal=lhs_is_equal, value=float(match_lhs.group(1)))
 
@@ -292,13 +292,12 @@ class DeferredItem:
     def __setattr__(self, key, value):
         setattr(self.plan.get_property(self.property, self.name), key, value)
 
-    def __instancecheck__(self, instance):
-        return isinstance(self.plan.get_property(self.property, self.name), instance)
-
     def __iter__(self):
         return iter(self.plan.get_property(self.property))
 
     def __eq__(self, other):
+        if other is self:
+            return True
         return self.plan.get_property(self.property, self.name) == other
 
     def replace_plan(self, new_plan):
@@ -327,7 +326,7 @@ def copy_plan_with_new_sources(original_plan, new_sources):
         schemas=copy(original_plan.schemas),
         visuals=copy(original_plan.visuals),
         algorithms=copy(original_plan.algorithms),
-        steps=copy(original_plan.steps),
+        steps={name: copy(step) for name, step in original_plan.steps.items()},
         states=copy(original_plan.states),
         config=copy(original_plan.config)
     )
@@ -336,7 +335,7 @@ def copy_plan_with_new_sources(original_plan, new_sources):
         if hasattr(step, "source") and step.source:
             if isinstance(step.source, DeferredItem):
                 step.source.replace_plan(plan_copy)
-            else:
-                step.source = new_sources.get(name)
+            elif name in new_sources:
+                step.source = new_sources[name]
 
     return plan_copy

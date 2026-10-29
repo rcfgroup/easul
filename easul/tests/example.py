@@ -29,7 +29,7 @@ def diabetes_progression_algorithm():
     from sklearn.linear_model import LogisticRegression
     diab_train = diabetes_progression_dataset()
 
-    diab_alg = ClassifierAlgorithm(title="Diabetes progression", model=LogisticRegression(max_iter=500), schema=diab_train.schema)
+    diab_alg = ClassifierAlgorithm(title="Diabetes progression", model=LogisticRegression(max_iter=5000), schema=diab_train.schema)
 
     diab_alg.fit(diab_train)
 

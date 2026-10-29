@@ -11,7 +11,10 @@ class RedTheme:
     outer_line_width = 12
     text_y = 10
     pallete_start = 0
-    font = ImageFont.truetype("Arial.ttf", 20)
+    try:
+        font = ImageFont.truetype("Arial.ttf", 20)
+    except OSError:
+        font = ImageFont.load_default()
     min_score = 0
     max_score = None
     expand_blocks = False

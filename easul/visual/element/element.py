@@ -298,8 +298,11 @@ class ValueElement(Element):
         if num_format:
             try:
                 value = format(value, num_format)
-            except ValueError:
+            except (ValueError, TypeError):
                 pass
+
+        if value is None:
+            value = ""
 
         doc = div(class_name="py-2")
 
