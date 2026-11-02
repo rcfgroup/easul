@@ -29,15 +29,17 @@ def create_algorithm():
     algorithm.fit(train)
     return algorithm, test
 
-def test_empty_metadata_fails_if_visual_receives_no_parameters():
+def test_metadata_is_empty_if_visual_receives_no_parameters():
     algorithm, test = create_algorithm()
 
-    with pytest.raises(ValueError):
-        visual = Visual(
-            title="Performance",
-            algorithm=algorithm,
-            elements=[Prediction(), LimeTablePlot(), Sensitivity()],
-        )
+    visual = Visual(
+        title="Performance",
+        algorithm=algorithm,
+        elements=[Prediction(), LimeTablePlot(), Sensitivity()],
+    )
+
+    assert isinstance(visual.metadata, Metadata)
+    assert visual.metadata == {}
 
 def test_metadata_is_computed_from_dataset_if_provided_in_metadata():
     algorithm, train = create_algorithm()
@@ -66,19 +68,24 @@ def test_metadata_is_computed_if_provided_via_metadata_dataset():
     assert "sensitivity" in metadata
 
 
-def test_metadata_is_populated_from_file_if_provided_in_metadata():
-    metadata = FileMetadata(filename="/Users/rcf8/Projects/easul/easul/tests/data/diabetes.pkl", data={
-        "sensitivity": 0.56, "recall": 0.67})
-    metadata.init=True
-    metadata.save()
+def test_metadata_is_populated_from_file_if_provided_in_metadata(tmp_path):
+    from easul import util
+
+    path = tmp_path / "metadata.pkl"
+    path.write_bytes(util.to_serialized({"sensitivity": 0.56, "recall": 0.67}))
+
     algorithm, train = create_algorithm()
     visual = Visual(
         title="Performance",
         algorithm=algorithm,
-        metadata=metadata,
+        metadata_filename=str(path),
         elements=[Prediction(), LimeTablePlot(), Sensitivity()],
     )
+
     metadata = visual.metadata
     assert isinstance(metadata, Metadata)
     assert "sensitivity" in metadata
     assert "recall" in metadata
+
+    # Loaded metadata can be saved back.
+    metadata.save()

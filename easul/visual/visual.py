@@ -37,7 +37,10 @@ class FileMetadata(Metadata):
 
     def init(self, visual):
         super().init(visual)
-        self.load()
+        try:
+            self.load()
+        except FileNotFoundError:
+            LOG.warning("Unable to load metadata - not calculating")
 
     def load(self):
         with open(self.filename, "rb") as infile:
@@ -47,12 +50,12 @@ class FileMetadata(Metadata):
 
         LOG.debug(f"Loaded metadata from '{self.filename}'")
 
-        self.init = True
+        self._init = True
         self.loaded_from = self.filename
 
     def save(self):
-        if self.init is False:
-            raise ValueError("Not initialised, you must load or calculate metadata to save it")
+        if not self.data:
+            raise ValueError("No metadata to save: load or provide data first")
 
         with open(self.filename, "wb") as outfile:
             outfile.write(util.to_serialized(self.data))
@@ -116,20 +119,12 @@ class Visual:
 
     def _create_metadata(self):
         if self.metadata_filename:
-            filename = self.metadata_filename
-
-            metadata = FileMetadata(filename=filename, algorithm=self.algorithm, visual=self)
-
-            try:
-                metadata.load()
-                return metadata
-            except FileNotFoundError:
-                LOG.warning("Unable to load metadata - not calculating")
+            return FileMetadata(filename=self.metadata_filename)
 
         if self.metadata_dataset:
             return DatasetMetadata(dataset=self.metadata_dataset)
 
-        raise ValueError("No metadata parameters provided to visual (metadata, metadata_filename, metadata_dataset)")
+        return Metadata()
 
     def calculate_metadata(self):
         self.metadata.init(self)

@@ -3,7 +3,7 @@ import os
 from sklearn.linear_model import LogisticRegression
 from easul.tests.example import prog_input_data
 from easul.algorithm import ClassifierAlgorithm
-from easul.visual import Visual, FileMetadata, Metadata
+from easul.visual import DatasetMetadata, FileMetadata, Metadata, Visual
 import numpy as np
 import logging
 
@@ -87,12 +87,13 @@ def test_file_metadata_will_load_and_save(classifier_dataset):
     algo.fit(train)
 
     filename = tempfile.mktemp()
-    file_md = FileMetadata(algorithm=algo, visual = visual, filename = filename)
+    computed = DatasetMetadata(train)
+    computed.init(Visual(elements=[LimeTablePlot(title="Contributions")], algorithm=algo))
 
-    file_md.calculate(train)
+    file_md = FileMetadata(filename=filename, data=computed.data)
     file_md.save()
 
-    metadata2 = FileMetadata(algorithm=algo, visual =visual, filename = filename)
+    metadata2 = FileMetadata(filename=filename)
     metadata2.load()
 
 
@@ -114,7 +115,6 @@ def test_visual_will_render_html(classifier_dataset):
     visual = Visual(elements=[
         LimeTablePlot(title="Contributions")
     ], algorithm=algo, metadata_dataset=train)
-    visual.metadata.calculate(train)
     context = visual.generate_context(prog_input_data)
     html = visual.render(algorithm=algo, context=context)
     assert html
