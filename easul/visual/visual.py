@@ -6,34 +6,90 @@ import logging
 
 from easul.error import StepDataError
 from easul.step import ActionEvent
+from easul.util import string_to_function
 from easul.visual.render import PlainRenderer
 from easul import util
 
 LOG = logging.getLogger(__name__)
 
 class Metadata(UserDict):
-    def __init__(self, algorithm=None, visual=None):
-        super().__init__({})
-        self.visual = visual
-        self.algorithm = algorithm
-        self.init = False
+    """Computed metadata for a visual — a mapping that can (re)initialise itself."""
 
-    def calculate(self, dataset):
-        if not self.visual:
-            raise AttributeError("Cannot calculate metadata as instance has not been called with Visual object")
+    def __init__(self, data=None):
+        super().__init__(data or {})
+        self._init = False
+
+    def init(self, visual):
+        """Bind to ``visual`` and mark as initialised."""
+        self.visual = visual
+        self.algorithm = getattr(visual, "algorithm", None)
+        self._init = True
+
+    def reset(self):
+        self._init = False
+        self.data = {}
+
+class FileMetadata(Metadata):
+    def __init__(self, filename, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.filename = filename
+        self.loaded_from = None
+
+    def init(self, visual):
+        super().init(visual)
+        try:
+            self.load()
+        except FileNotFoundError:
+            LOG.warning("Unable to load metadata - not calculating")
+
+    def load(self):
+        with open(self.filename, "rb") as infile:
+            obj_data = infile.read()
+
+        self.data = util.from_serialized(obj_data)
+
+        LOG.debug(f"Loaded metadata from '{self.filename}'")
+
+        self._init = True
+        self.loaded_from = self.filename
+
+    def save(self):
+        if not self.data:
+            raise ValueError("No metadata to save: load or provide data first")
+
+        with open(self.filename, "wb") as outfile:
+            outfile.write(util.to_serialized(self.data))
+
+class DatasetMetadata(Metadata):
+    """Metadata computed from a dataset by the visual's elements."""
+
+    def __init__(self, dataset):
+        super().__init__()
+        self._dataset = string_to_function(dataset)
+
+    def init(self, visual):
+        if self._init:
+            return
+        if not visual:
+            raise AttributeError("Cannot calculate metadata without a Visual")
+        if not self._dataset:
+            raise AttributeError("No dataset provided to compute metadata")
 
         metadata = {}
-
-        for element in self.visual.elements:
-            element_metadata = element.generate_metadata(algorithm=self.algorithm, dataset=dataset)
-
+        for element in visual.elements:
+            element_metadata = element.generate_metadata(
+                algorithm=visual.algorithm, dataset=self._dataset
+            )
             if element_metadata:
                 metadata.update(element_metadata)
 
-        metadata["algorithm_digest"] = self.algorithm.unique_digest
-
-        self.init = True
+        metadata["algorithm_digest"] = visual.algorithm.unique_digest
+        self._init = True
+        self.algorithm = visual.algorithm
+        self.visual = visual
         self.data.update(metadata)
+
+        LOG.info("Calculated metadata for visual '%s'", visual.title)
 
 
 @define(kw_only=True)
@@ -44,7 +100,7 @@ class Visual:
     """
     elements = field()
     title = field(default=None)
-    metadata = field(default=None, init=False)
+    metadata = field(default=None)
     metadata_filename = field(default=None)
     algorithm = field(default=None)
     metadata_dataset = field(default=None)
@@ -56,29 +112,22 @@ class Visual:
         }
 
     def __attrs_post_init__(self):
-        self.metadata = self._create_metadata()
+        if self.metadata is None:
+            self.metadata = self._create_metadata()
+
+        self.metadata.init(self)
 
     def _create_metadata(self):
         if self.metadata_filename:
-            filename = self.metadata_filename
+            return FileMetadata(filename=self.metadata_filename)
 
-            metadata = FileMetadata(filename=filename, algorithm=self.algorithm, visual=self)
+        if self.metadata_dataset:
+            return DatasetMetadata(dataset=self.metadata_dataset)
 
-            try:
-                metadata.load()
-            except FileNotFoundError:
-                LOG.warning("Unable to load metadata - not calculating")
-
-        else:
-            metadata = Metadata(algorithm=self.algorithm, visual = self)
-
-        return metadata
+        return Metadata()
 
     def calculate_metadata(self):
-        if self.algorithm:
-            if not self.metadata_dataset:
-                LOG.warning("Could not calculate algorithm metadata as no 'metadata_dataset' was provided to visual")
-        self.metadata.calculate(util.string_to_function(self.metadata_dataset))
+        self.metadata.init(self)
 
     def generate_context(self, input_data, **kwargs):
         result = {}
@@ -141,27 +190,3 @@ class Visual:
             elements.extend(cls._get_nested_elements(sub_element))
 
         return elements
-
-class FileMetadata(Metadata):
-    def __init__(self, filename, algorithm, *args, **kwargs):
-        super().__init__(algorithm, *args, **kwargs)
-        self.filename = filename
-        self.loaded_from = None
-
-    def load(self):
-        with open(self.filename, "rb") as infile:
-            obj_data = infile.read()
-
-        self.data = util.from_serialized(obj_data)
-
-        LOG.debug(f"Loaded metadata from '{self.filename}'")
-
-        self.init = True
-        self.loaded_from = self.filename
-
-    def save(self):
-        if self.init is False:
-            raise ValueError("Not initialised, you must load or calculate metadata to save it")
-
-        with open(self.filename, "wb") as outfile:
-            outfile.write(util.to_serialized(self.data))

@@ -2,6 +2,7 @@ import os
 
 from easul import util
 from easul.algorithm import StoredAlgorithm
+from easul.visual import DatasetMetadata, FileMetadata
 import logging
 LOG = logging.getLogger(__name__)
 
@@ -33,17 +34,16 @@ class PlanRepository:
         cwd = os.getcwd()
 
         for visual_name, visual in self.plan.visuals.items():
-            dset = util.string_to_function(visual.metadata_dataset)
-            visual.metadata.clear()
-            visual.metadata.calculate(dset)
             filename = visual.metadata_filename
-            if not filename:
+            if not filename or not visual.metadata_dataset:
                 continue
 
+            computed = DatasetMetadata(util.string_to_function(visual.metadata_dataset))
+            computed.init(visual)
+            visual.metadata = FileMetadata(filename=filename, data=computed.data)
+
             self._make_path(filename)
-
-            LOG.info(f"Save metadata to '{visual.metadata.filename}")
-
+            LOG.info(f"Save metadata to '{filename}")
             visual.metadata.save()
 
         os.chdir(cwd)
